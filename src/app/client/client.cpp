@@ -11,21 +11,8 @@
 
 using namespace std;
 
-int client_main(vector<string> args)
+int http_request(string method, Url &url)
 {
-     if (args.size() < 4)
-     {
-          cout << args[0] << " " << args[1] << " method path" << endl;
-          cout << "  e.g. " << args[0] << " " << args[1] << " GET /index.html" << endl;
-          return -1;
-     }
-
-     // TODO: Don't hard-code the server host and port
-     string host = "localhost";
-     int port = 8001;
-     string method = args[2];
-     string path = args[3];
-
      cout << "Opening socket"
           << "\n";
      int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -35,10 +22,10 @@ int client_main(vector<string> args)
           return -1;
      }
 
-     struct hostent *serverDnsRecord = gethostbyname(host.c_str());
+     struct hostent *serverDnsRecord = gethostbyname(url.getHostname().c_str());
      if (serverDnsRecord == NULL)
      {
-          cout << "Error locating server " << host << ": " << strerror(errno) << endl;
+          cout << "Error locating server " << url.getHostname() << ": " << strerror(errno) << endl;
           return -1;
      }
 
@@ -47,9 +34,8 @@ int client_main(vector<string> args)
      bzero((char *)&serverAddress, sizeof(serverAddress));
      serverAddress.sin_family = AF_INET;
      bcopy((char *)serverDnsRecord->h_addr, (char *)&serverAddress.sin_addr.s_addr, serverDnsRecord->h_length);
-     serverAddress.sin_port = htons(port);
+     serverAddress.sin_port = htons(url.getPort());
 
-     //connect to server
      if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
      {
           printf("\nConnection Failed \n");
@@ -61,7 +47,7 @@ int client_main(vector<string> args)
 
      HTTPRequest request;
      request.setMethod(method);
-     request.setPath(path);
+     request.setPath(url.getPath());
      request.setHeader("Connection", "close");
 
      request.serialize(cout);
@@ -76,7 +62,7 @@ int client_main(vector<string> args)
      {
           if (response.getStatusCode() == 200)
           {
-               ofstream outputFile("./" + path);
+               ofstream outputFile("./" + url.getPath());
                outputFile << response.getContentString();
                outputFile.flush();
           }
@@ -92,6 +78,28 @@ int client_main(vector<string> args)
      }
 
      shutdown(sock, SHUT_RDWR);
+
+     return 0;
+}
+
+int client_main(vector<string> args)
+{
+     if (args.size() < 3)
+     {
+          cout << args[0] << " " << args[1] << " url..." << endl;
+          cout << "  e.g. " << args[0] << " " << args[1] << " http://localhost:8001/index.html" << endl;
+          return -1;
+     }
+
+     for (int i = 2; i < args.size(); i++)
+     {
+          Url url(args[i]);
+
+          if (http_request("GET", url) != 0)
+          {
+               return -1;
+          }
+     }
 
      return 0;
 }

@@ -48,6 +48,7 @@ int main(int argc, const char *argv[])
         int code = 0;
         code += test_http_request();
         code += test_http_response();
+        code += test_url();
         return code;
     }
     else if (mode.compare("server") == 0)
@@ -57,7 +58,6 @@ int main(int argc, const char *argv[])
     }
     else if (mode.compare("client") == 0)
     {
-        // TODO: We should pass args into this method
         return client_main(args);
     }
     else

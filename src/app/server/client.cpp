@@ -39,9 +39,6 @@ void Client::disconnect()
 
 bool Client::handleRequest(iostream &stream, HTTPRequest &request)
 {
-    // TODO: Figure out which file to send based on the request.path
-    // TODO: If the file doesn't exist, send a 404 Not Found error
-    // TODO: If the file does exist, send it back with a 200 OK
     this->keepAlive = request.getHeader("Connection", "close").compare("keep-alive") == 0;
 
     if (request.getMethod().compare("GET") == 0)
