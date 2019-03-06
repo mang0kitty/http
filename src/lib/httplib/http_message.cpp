@@ -55,6 +55,11 @@ vector<uint8_t> HTTPMessage::getContent()
     return this->content;
 }
 
+string HTTPMessage::getContentString()
+{
+    return string(this->content.begin(), this->content.end());
+}
+
 void HTTPMessage::setContent(vector<uint8_t> content)
 {
     this->content = content;

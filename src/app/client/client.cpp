@@ -5,13 +5,27 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include "httplib.h"
 #include "sockstream.h"
 
 using namespace std;
 
-int client_main()
+int client_main(vector<string> args)
 {
+     if (args.size() < 4)
+     {
+          cout << args[0] << " " << args[1] << " method path" << endl;
+          cout << "  e.g. " << args[0] << " " << args[1] << " GET /index.html" << endl;
+          return -1;
+     }
+
+     // TODO: Don't hard-code the server host and port
+     string host = "localhost";
+     int port = 8001;
+     string method = args[2];
+     string path = args[3];
+
      cout << "Opening socket"
           << "\n";
      int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -21,66 +35,63 @@ int client_main()
           return -1;
      }
 
-     struct sockaddr_in serverAddress;
-     bzero((char *)&serverAddress, sizeof(serverAddress));
-     serverAddress.sin_family = AF_INET;
-     serverAddress.sin_addr.s_addr = INADDR_ANY;
-     serverAddress.sin_port = htons(8001);
-
-     cout << "Binding socket"
-          << "\n";
-     if (bind(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
+     struct hostent *serverDnsRecord = gethostbyname(host.c_str());
+     if (serverDnsRecord == NULL)
      {
-          cout << "Error binding socket"
-               << "\n";
+          cout << "Error locating server " << host << ": " << strerror(errno) << endl;
           return -1;
      }
 
-     cout << "Listening on socket"
-          << "\n";
-     listen(sock, 10);
+     struct sockaddr_in serverAddress;
 
-     while (true)
+     bzero((char *)&serverAddress, sizeof(serverAddress));
+     serverAddress.sin_family = AF_INET;
+     bcopy((char *)serverDnsRecord->h_addr, (char *)&serverAddress.sin_addr.s_addr, serverDnsRecord->h_length);
+     serverAddress.sin_port = htons(port);
+
+     //connect to server
+     if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
      {
-          struct sockaddr_in remoteHost;
-          socklen_t remoteHostLen;
-
-          cout << "Waiting for connection"
-               << "\n";
-          int conn = accept(sock, (struct sockaddr *)&remoteHost, &remoteHostLen);
-
-          if (conn < 0)
-          {
-               cout << "Error accepting new connection: " << conn << "\n";
-               continue;
-          }
-
-          cout << "Accepted new connection"
-               << "\n";
-
-          iosockstreambuf sockBuf(conn, 1024);
-          iostream sockStream(&sockBuf);
-
-          HTTPRequest request;
-          request.deserialize(sockStream);
-
-          request.serialize(cout);
-
-          cout << "\n\n";
-
-          HTTPResponse response(200, "OK");
-          response.setHeader("Connection", "close");
-          response.setContent("Thanks for your request!");
-
-          response.serialize(sockStream);
-          response.serialize(cout);
-          cout << "\n\n";
-          sockStream.flush();
-
-          shutdown(conn, SHUT_RDWR);
+          printf("\nConnection Failed \n");
+          return -1;
      }
-     //testRequest();
-     //testResponse();
+
+     iosockstreambuf streamBuf(sock, 1024);
+     iostream stream(&streamBuf);
+
+     HTTPRequest request;
+     request.setMethod(method);
+     request.setPath(path);
+     request.setHeader("Connection", "close");
+
+     request.serialize(cout);
+     request.serialize(stream);
+     stream.flush();
+
+     cout << endl
+          << endl;
+
+     HTTPResponse response;
+     if (response.deserialize(stream))
+     {
+          if (response.getStatusCode() == 200)
+          {
+               ofstream outputFile("./" + path);
+               outputFile << response.getContentString();
+               outputFile.flush();
+          }
+          else
+          {
+               response.serialize(cout);
+               cout << endl;
+          }
+     }
+     else
+     {
+          cout << "Failed to get response from server" << endl;
+     }
+
+     shutdown(sock, SHUT_RDWR);
 
      return 0;
 }

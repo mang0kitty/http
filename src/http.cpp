@@ -44,6 +44,7 @@ int main(int argc, const char *argv[])
 
     if (mode.compare("test") == 0)
     {
+        // TODO: This should be replaced with a test_main(args) method
         int code = 0;
         code += test_http_request();
         code += test_http_response();
@@ -51,11 +52,13 @@ int main(int argc, const char *argv[])
     }
     else if (mode.compare("server") == 0)
     {
+        // TODO: We should pass args into this method
         return server_main();
     }
     else if (mode.compare("client") == 0)
     {
-        return client_main();
+        // TODO: We should pass args into this method
+        return client_main(args);
     }
     else
     {

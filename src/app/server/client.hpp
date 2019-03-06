@@ -6,22 +6,25 @@
 
 class Client
 {
-  public:
-    Client(int socket);
-    ~Client();
+public:
+  Client(int socket);
+  ~Client();
 
-    void start();
-    void disconnect();
+  void start();
+  void disconnect();
 
-  protected:
-    bool handleRequest(iostream &stream, HTTPRequest &request);
+protected:
+  bool handleRequest(iostream &stream, HTTPRequest &request);
 
-  private:
-    static void runThread(Client *client);
+  void handleGetRequest(iostream &stream, HTTPRequest &request);
+  void handlePostRequest(iostream &stream, HTTPRequest &request);
 
-    int socketHandle;
-    std::chrono::time_point<std::chrono::system_clock> lastSeen;
-    bool keepAlive;
-    bool connected;
-    std::thread *thread = NULL;
+private:
+  static void runThread(Client *client);
+
+  int socketHandle;
+  std::chrono::time_point<std::chrono::system_clock> lastSeen;
+  bool keepAlive;
+  bool connected;
+  std::thread *thread = NULL;
 };

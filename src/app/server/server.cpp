@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -52,7 +53,18 @@ int acceptConnection(int serverSocket)
 
 int server_main()
 {
+    char cwdBuf[1024];
+    getcwd(cwdBuf, sizeof(cwdBuf));
+    // if (chroot(cwdBuf) != 0)
+    // {
+    //     std::cout << "Failed to chroot the web server: " << strerror(errno) << endl;
+    //     return 1;
+    // }
+
+    string directory = string(cwdBuf);
     int port = 8001;
+
+    cout << "Running in " << directory << endl;
 
     struct sockaddr_in serverAddress;
     bzero((char *)&serverAddress, sizeof(serverAddress));

@@ -22,6 +22,7 @@ public:
   void setContent(vector<uint8_t> content);
   void setContent(string content);
   vector<uint8_t> getContent();
+  string getContentString();
 
 protected:
   void serializeHeadersAndContent(ostream &into);
