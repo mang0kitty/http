@@ -5,12 +5,13 @@
 #include <time.h>
 #include <sstream>
 
-Client::Client(int socket)
+Client::Client(int socket, FileProvider *fileProvider)
 {
     this->connected = true;
     this->socketHandle = socket;
     this->lastSeen = std::chrono::system_clock::now();
     this->keepAlive = true;
+    this->fileProvider = fileProvider;
 }
 
 Client::~Client()
@@ -60,41 +61,43 @@ bool Client::handleRequest(iostream &stream, HTTPRequest &request)
 
 void Client::handleGetRequest(iostream &stream, HTTPRequest &request)
 {
-
-    ifstream fileStream("./" + request.getPath());
-    stringstream fileContent;
-
-    bool fileFound = false;
-
-    char c = fileStream.get();
-    while (fileStream.good())
+    auto trueFilePath = this->fileProvider->getFilePath(request.getPath());
+    if (trueFilePath != "")
     {
-        fileFound = true;
+        ifstream fileStream(trueFilePath);
+        stringstream fileContent;
 
-        fileContent << c;
-        c = fileStream.get();
+        bool fileFound = false;
+
+        char c = fileStream.get();
+        while (fileStream.good())
+        {
+            fileFound = true;
+
+            fileContent << c;
+            c = fileStream.get();
+        }
+
+        fileStream.close();
+
+        if (fileFound)
+        {
+
+            HTTPResponse response(200, "OK");
+            response.setHeader("Connection", request.getHeader("Connection", "close"));
+            response.setContent(fileContent.str());
+
+            response.serialize(stream);
+            stream.flush();
+            return;
+        }
     }
 
-    fileStream.close();
+    HTTPResponse response(404, "Not Found");
+    response.setHeader("Connection", request.getHeader("Connection", "close"));
+    response.setContent("Sorry, we couldn't find the file you were looking for.");
 
-    if (fileFound)
-    {
-
-        HTTPResponse response(200, "OK");
-        response.setHeader("Connection", request.getHeader("Connection", "close"));
-        response.setContent(fileContent.str());
-
-        response.serialize(stream);
-    }
-    else
-    {
-
-        HTTPResponse response(404, "Not Found");
-        response.setHeader("Connection", request.getHeader("Connection", "close"));
-        response.setContent("Sorry, we couldn't find the file you were looking for.");
-
-        response.serialize(stream);
-    }
+    response.serialize(stream);
     stream.flush();
 }
 

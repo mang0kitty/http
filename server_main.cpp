@@ -3,8 +3,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <errno.h>
+#include <list>
 #include "client.hpp"
+#include "fileprovider.hpp"
 
 using namespace std;
 
@@ -42,7 +45,8 @@ int acceptConnection(int serverSocket)
 
     if (conn < 0)
     {
-        cout << "Error accepting new connection: " << strerror(errno) << "\n";
+        cout << "Error accepting new connection: " << strerror(errno) << "(" << conn << ")"
+                                                                                        "\n";
         return -1;
     }
 
@@ -53,26 +57,29 @@ int acceptConnection(int serverSocket)
 
 int server_main(vector<string> args)
 {
-    // TODO: Accept command line arguments for hostname, port and directory
-    // TODO: Pass directory info to clients (to locate files)
+    if (args.size() < 4)
+    {
+        cout << args[0] << " hostname port file-dir" << endl;
+        return -1;
+    }
 
-    char cwdBuf[1024];
-    getcwd(cwdBuf, sizeof(cwdBuf));
-    // if (chroot(cwdBuf) != 0)
-    // {
-    //     std::cout << "Failed to chroot the web server: " << strerror(errno) << endl;
-    //     return 1;
-    // }
+    auto hostname = args[1];
+    int port = stoi(args[2]);
+    auto directory = args[3];
 
-    string directory = string(cwdBuf);
-    int port = 8001;
+    FileProvider fileProvider(directory);
 
-    cout << "Running in " << directory << endl;
+    struct hostent *serverDnsRecord = gethostbyname(hostname.c_str());
+    if (serverDnsRecord == NULL)
+    {
+        cout << "Error locating server " << hostname << ": " << strerror(errno) << endl;
+        return -1;
+    }
 
     struct sockaddr_in serverAddress;
     bzero((char *)&serverAddress, sizeof(serverAddress));
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    bcopy((char *)serverDnsRecord->h_addr, (char *)&serverAddress.sin_addr.s_addr, serverDnsRecord->h_length);
     serverAddress.sin_port = htons(port);
 
     int sock = startListeningServer((struct sockaddr *)&serverAddress, sizeof(serverAddress));
@@ -83,10 +90,10 @@ int server_main(vector<string> args)
         return 1;
     }
 
-    cout << "Listening on 0.0.0.0:" << port
+    cout << "Listening on " << hostname << ":" << port << " in " << directory
          << "\n";
 
-    std::vector<Client *> clients;
+    std::list<Client *> clients;
 
     while (true)
     {
@@ -96,9 +103,11 @@ int server_main(vector<string> args)
             continue;
         }
 
-        auto client = new Client(conn);
+        auto client = new Client(conn, &fileProvider);
         client->start();
+
         //clients.push_back(client);
+        // TODO: Shutdown the client if it is running for >20s with no traffic
     }
 
     return 0;

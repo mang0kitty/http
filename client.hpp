@@ -3,11 +3,12 @@
 #include <thread>
 #include "httplib.h"
 #include "sockstream.h"
+#include "fileprovider.hpp"
 
 class Client
 {
 public:
-  Client(int socket);
+  Client(int socket, FileProvider *fileProvider);
   ~Client();
 
   void start();
@@ -23,6 +24,7 @@ private:
   static void runThread(Client *client);
 
   int socketHandle;
+  FileProvider *fileProvider;
   std::chrono::time_point<std::chrono::system_clock> lastSeen;
   bool keepAlive;
   bool connected;

@@ -62,6 +62,7 @@ int http_request(string method, Url &url)
      {
           if (response.getStatusCode() == 200)
           {
+               // TODO: Create output directory if necessary
                ofstream outputFile("./" + url.getPath());
                outputFile << response.getContentString();
                outputFile.flush();

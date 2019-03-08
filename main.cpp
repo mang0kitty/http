@@ -6,6 +6,7 @@ int server_main(std::vector<std::string> args);
 int client_main(std::vector<std::string> args);
 int test_http_request();
 int test_http_response();
+int test_file_provider();
 int test_url();
 
 void parseArgs(int argc, const char *argv[], std::vector<std::string> &target)
@@ -39,7 +40,7 @@ int main(int argc, const char *argv[])
     std::vector<std::string> args;
     parseArgs(argc, argv, args);
 
-    std::string mode = args[0];
+    std::string mode = args.front();
 
     if (mode.find("web-test") != std::string::npos)
     {
@@ -48,11 +49,11 @@ int main(int argc, const char *argv[])
         code += test_http_request();
         code += test_http_response();
         code += test_url();
+        code += test_file_provider();
         return code;
     }
     else if (mode.find("web-server") != std::string::npos)
     {
-        // TODO: We should pass args into this method
         return server_main(args);
     }
     else if (mode.find("web-client") != std::string::npos)

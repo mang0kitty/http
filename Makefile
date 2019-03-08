@@ -6,5 +6,8 @@ web-client: $(subst .cpp,.o,$(wildcard *.cpp))
 web-server: $(subst .cpp,.o,$(wildcard *.cpp))
 	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o "web-server" -pthread
 
+web-test: $(subst .cpp,.o,$(wildcard *.cpp))
+	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o "web-test" -pthread
+
 $(notdir $(CURDIR)): $(subst .cpp,.o,$(wildcard *.cpp))
 		$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o "$@" -pthread
