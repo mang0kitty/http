@@ -24,6 +24,17 @@ Client::~Client()
     }
 }
 
+bool Client::isConnected()
+{
+    return this->connected;
+}
+
+bool Client::hasTimedOut(int timeout)
+{
+    auto now = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(now - lastSeen).count() > timeout;
+}
+
 void Client::start()
 {
     this->thread = new std::thread(Client::runThread, this);

@@ -5,11 +5,36 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+#include <thread>
 #include <list>
+#include <time.h>
 #include "client.hpp"
 #include "fileprovider.hpp"
 
 using namespace std;
+
+void reaperThreadImplementation(std::list<Client *> clientsList)
+{
+    while (true)
+    {
+        sleep(1);
+
+        for (auto &&client : clientsList)
+        {
+            if (client->hasTimedOut(20) && client->isConnected())
+            {
+                client->disconnect();
+            }
+
+            if (!client->isConnected())
+            {
+                cout << "Removing client from clients list" << endl;
+                clientsList.remove(client);
+                break;
+            }
+        }
+    }
+}
 
 int startListeningServer(struct sockaddr *serverAddress, socklen_t serverAddressLen)
 {
@@ -93,7 +118,8 @@ int server_main(vector<string> args)
     cout << "Listening on " << hostname << ":" << port << " in " << directory
          << "\n";
 
-    std::list<Client *> clients;
+    //std::list<Client *> clients;
+    //std::thread reaperThread(reaperThreadImplementation, clients);
 
     while (true)
     {
@@ -104,11 +130,12 @@ int server_main(vector<string> args)
         }
 
         auto client = new Client(conn, &fileProvider);
-        client->start();
-
+        //cout << "Adding client to clients list" << endl;
         //clients.push_back(client);
-        // TODO: Shutdown the client if it is running for >20s with no traffic
+        client->start();
     }
+
+    //reaperThread.join();
 
     return 0;
 }

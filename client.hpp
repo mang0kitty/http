@@ -14,6 +14,9 @@ public:
   void start();
   void disconnect();
 
+  bool hasTimedOut(int timeout);
+  bool isConnected();
+
 protected:
   bool handleRequest(iostream &stream, HTTPRequest &request);
 
